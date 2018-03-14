@@ -1,0 +1,51 @@
+shared:
+  image: node:8
+jobs:
+  topology-pr:
+    requires: [~pr]
+    steps:
+      - build: echo "mvn build"
+      - sonar: echo "mvn sonar:sonar" #https://docs.sonarqube.org/display/SCAN/Analyzing+with+SonarQube+Scanner+for+Maven
+      - results: echo "gather results"
+  topology:
+    requires: [~commit]
+    steps:
+      - build: echo "mvn build"
+      - sonar: echo "mvn sonar:sonar"
+      - increment-version: echo "increment.sh"
+      - archive-hyieia: echo "archive.sh" #Though SD archives any files under $SD_ARTIFACTS_DIR to S3
+      - publish-artifactory: echo "publish.sh"
+  deploy-dev-vzw:
+    settings:
+      DEPLOY_ENV: "VZW-DEV.verizon.com"
+    requires: [topology]
+    steps:
+      - deploy: echo "deploy.sh"
+  deploy-dev-vz-wireline:
+    settings:
+      DEPLOY_ENV: "VZW-DEV-wireline.verizon.com"
+    requires: [topology]
+    steps:
+      - deploy: echo "deploy.sh"
+  deploy-qa-vz-wireline:
+    settings:
+      DEPLOY_ENV: "VZ-QA-wireline.verizon.com"
+    requires: [topology]
+    steps:
+      - deploy: echo "deploy.sh"
+  deploy-qa-vz-dlx:
+    settings:
+      DEPLOY_ENV: "VZ-QA-DLX-wireline.verizon.com"
+    requires: [topology]
+    steps:
+      - deploy: echo "deploy.sh"
+  deploy-qa-vz-mysql:
+    settings:
+      DEPLOY_ENV: "VZ-QA-MYSQL-wireline.verizon.com"
+    requires: [topology]
+    steps:
+      - deploy: echo "deploy.sh"
+  tests:
+    requires: [deploy-dev-vzw, deploy-dev-vz-wireline, deploy-qa-vz-wireline, deploy-qa-vz-dlx, deploy-qa-vz-mysql]
+    steps:
+      - test: echo "mvn test"
